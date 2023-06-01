@@ -1,0 +1,72 @@
+version: '3.3'
+
+services:
+  coder:
+    image: cyd01/coder
+    restart: always
+    environment:
+      - CODER_PASSWORD=admin001
+      - DOCKER_HOST=tcp://docker:2375
+      - TZ=Europe/Paris
+    volumes:
+      - coder:/home/coder
+    ports:
+      - 8080:8080
+    networks:
+      - front
+
+  docker:
+    image: docker:dind
+    restart: always
+    privileged: true
+    environment:
+      - TZ=Europe/Paris
+      - DOCKER_TLS_CERTDIR=
+    networks:
+      - front
+
+  git:
+    image: gitea/gitea
+    restart: always
+    environment:
+      - TZ=Europe/Paris
+      - ALLOW_EMPTY_PASSWORD=yes
+      - GITEA_ADMIN_USER=admin
+      - GITEA_ADMIN_PASSWORD=admin001
+      - GITEA_HTTP_PORT=3000
+      - GITEA_SSH_LISTEN_PORT=2222
+    volumes:
+      - gitea_data:/var/lib/gitea
+      - gitea_data:/etc/gitea
+    ports:
+      - 80:3000
+    networks:
+      - front
+
+  runner:
+    image: sshd-ubuntu
+    environment:
+      - TZ=Europe/Paris
+      - USER_NAME=ubuntu
+      - USER_PASS=ubuntu01
+    networks:
+      - front
+
+  gotty:
+    image: cyd01/gotty
+    environment:
+      - COMMAND=ssh -p 22 -2 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=3 -o LogLevel=quiet ubuntu@runner
+      - OPTIONS=-w --term xterm --title-format WebTerm
+    ports:
+      - "8022:80"
+    networks:
+      - front
+    
+networks:
+  front:
+
+volumes:
+  coder:
+  gitea_data:
+  gitea_config:
+
