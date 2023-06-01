@@ -1,0 +1,46 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: httpbin
+  labels:
+    name: httpbin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin-deployment
+  namespace: httpbin
+  labels:
+    app: httpbin
+spec:
+  selector:
+    matchLabels:
+      app: httpbin
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: httpbin
+    spec:
+      nodeSelector:
+        tier: frontend
+      containers:
+      - name: httpbin
+        image: grafana/k6-httpbin:latest
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin-service
+  namespace: httpbin
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    protocol: TCP
+    nodePort: 30081
+    port: 8080
+  selector:
+    app: httpbin

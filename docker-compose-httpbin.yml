@@ -1,0 +1,7 @@
+version: '2'
+services:
+  httpbin:
+    image: grafana/k6-httpbin:latest
+    restart: always
+    ports:
+      - '8085:8080'

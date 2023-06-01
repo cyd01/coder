@@ -1,5 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 echo "Running startup.sh"
+
 export HOME=/home/${USER}
 id ; echo "HOME="$HOME ; echo "USER="$USER
 
@@ -37,6 +39,8 @@ else
   test -d ~/project && rm -rf ~/project
   git clone ${CODER_GIT_URL} ~/project
 fi
+
+ssh-keyscan runner 2> /dev/null >> ~/.ssh/known_hosts
 
 cd ~/project
 exec dumb-init ${CMD} "$@"
