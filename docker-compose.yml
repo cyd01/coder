@@ -1,0 +1,203 @@
+version: '3.3'
+
+services:
+  coder:
+    container_name: coder
+    hostname: coder
+    image: coder
+    build:
+      context: ./coder
+      dockerfile: Dockerfile 
+    restart: always
+    environment:
+      - CODER_GIT_URL=https://github.com/cyd01/coder.git
+      - CODER_PASSWORD=admin001
+      - DOCKER_HOST=tcp://docker:2375
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - TZ=Europe/Paris
+    depends_on:
+      - runner
+    volumes:
+      - coder:/home/coder
+#    ports: [ "8181:8080" ]
+    networks:
+      - front
+
+  docker:
+    container_name: docker
+    hostname: docker
+    image: docker:dind
+    restart: always
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - TZ=Europe/Paris
+    ports:
+      - 8081-8089:8081-8089
+    networks:
+      - front
+
+  kubernetes:
+    container_name: kubernetes
+    hostname: kubernetes
+    image: kubernetes
+    build:
+      context: ./kubernetes
+      dockerfile: Dockerfile 
+    restart: always
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - TZ=Europe/Paris
+    ports:
+      - 8091-8099:8091-8099
+    networks:
+      - front
+  
+  runner:
+    container_name: runner
+    hostname: runner
+    image: runner
+    build:
+      context: runner
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - DOCKER_HOST=tcp://docker:2375
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - USER_NAME=ubuntu
+      - USER_PASS=ubuntu01
+      - TZ=Europe/Paris
+    links:
+      - docker
+      - git
+    depends_on:
+      - docker
+      - git
+    networks:
+      - front
+
+  git:
+    container_name: git
+    hostname: git
+    image: gitea/gitea
+    restart: always
+    environment:
+      - DISABLE_REGISTRATION=true
+      - ALLOW_EMPTY_PASSWORD=yes
+      - GITEA_ADMIN_USER=admin
+      - GITEA_ADMIN_PASSWORD=admin001
+      - GITEA_HTTP_PORT=3000
+      - GITEA_SSH_LISTEN_PORT=2222
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - ROOT_URL=http://localhost:8080/git/
+      - TZ=Europe/Paris
+    volumes:
+      - gitea_data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+#    ports: [ "3000:3000", "2222:22" ]
+    networks:
+      - front
+
+  ttyd:
+    container_name: ttyd
+    hostname: ttyd
+    image: ttyd
+    build:
+      context: ttyd
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - TZ=Europe/Paris
+    links:
+      - runner
+    depends_on:
+      - runner
+#    ports: [ "9090:80" ]
+    networks:
+      - front
+
+  echo:
+    container_name: echo
+    hostname: echo
+    image: echo
+    build:
+      context: echo
+      dockerfile: Dockerfile
+    restart: always
+#    ports: [ "7070:80" ]
+    networks:
+      - front
+
+  nginx:
+    container_name: nginx
+    image: nginx
+    build:
+      context: nginx
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - TZ=Europe/Paris
+#    ports:
+#      - "1080:80"
+#      - "1443:443"
+    links:
+      - coder
+      - echo
+      - git
+      - ttyd
+    volumes:
+      - ./key.pem:/key.pem
+      - ./cert.pem:/cert.pem
+    networks:
+      - front
+
+  both:
+    container_name: both
+    hostname: both
+    image: both
+    command: -default nginx:80 -https nginx:443 -targets SSH:runner:22
+    build:
+      context: both
+      dockerfile: Dockerfile
+    restart: always
+    ports: [ "8080:8080" ]
+    links:
+      - nginx
+    depends_on:
+      - nginx
+    networks:
+      - front
+
+volumes:
+  coder:
+  gitea_data:
+
+networks:
+  front:

@@ -1,0 +1,58 @@
+kind: Cluster
+name: kind
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  # WARNING: It is _strongly_ recommended that you keep this the default
+  # (127.0.0.1) for security reasons. However it is possible to change this.
+  apiServerAddress: "127.0.0.1"
+  # By default the API server listens on a random open port.
+  # You may choose a specific port but probably don't need to in most cases.
+  # Using a random port makes it easier to spin up multiple clusters.
+  apiServerPort: 6443
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/12"
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true,tier=admin"
+  extraPortMappings:
+  # port forward 81 on the host to 30080 on this node
+  - containerPort: 30080
+    hostPort: 8090
+    protocol: TCP
+    listenAddress: 0.0.0.0
+  # port forward 443 on the host to 443 on this node
+  - containerPort: 443
+    hostPort: 443
+    protocol: TCP
+    listenAddress: 0.0.0.0
+- role: worker
+  extraPortMappings:
+  # port forward 8091 on the host to 30081 on this node
+  - containerPort: 30081
+    hostPort: 8091
+  - containerPort: 30082
+    hostPort: 8092
+  - containerPort: 30083
+    hostPort: 8093
+  - containerPort: 30084
+    hostPort: 8094
+  - containerPort: 30085
+    hostPort: 8095
+  - containerPort: 30086
+    hostPort: 8096
+  - containerPort: 30087
+    hostPort: 8097
+  - containerPort: 30088
+    hostPort: 8098
+  - containerPort: 30089
+    hostPort: 8099
+  labels:
+    tier: frontend
+- role: worker
+  labels:
+    tier: backend
